@@ -1,6 +1,6 @@
 import { bgRed, green, red, yellow } from 'kolorist';
 
-export type Lang = 'zh-cn' | 'en-us';
+export type Lang = 'en-us' | 'zh-cn';
 
 export const locales = {
   'zh-cn': {

@@ -31,7 +31,7 @@
 - **Automated file routing system**: automatically generate route import, declaration and type. For more details, please refer to [Elegant Router](https://github.com/soybeanjs/elegant-router).
 - **Flexible permission routing**: support both front-end static routing and back-end dynamic routing.
 - **Rich page components**: built-in a variety of pages and components, including 403, 404, 500 pages, as well as layout components, tag components, theme configuration components, etc.
-- **Command line tool**: Built-in efficient command line tool, git commit, delete file, release, etc.
+- **Command line tool**: built-in efficient command line tool, git commit, delete file, release, etc.
 - **Mobile adaptation**: perfectly support mobile terminal to realize adaptive layout.
 
 ## Version
