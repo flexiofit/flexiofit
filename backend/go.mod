@@ -1,14 +1,16 @@
-module github.com/aliml92/realworld-gin-sqlc
+module github.com/flexiofit/flexiofit/backend
 
 go 1.20
 
 require (
+	github.com/aliml92/realworld-gin-sqlc v0.0.0-20230802020709-f01271b55086
 	github.com/gin-gonic/gin v1.9.0
 	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/jackc/pgconn v1.8.0
 	github.com/jackc/pgtype v1.6.2
 	github.com/jackc/pgx/v4 v4.10.1
+	github.com/joho/godotenv v1.3.0
 	github.com/ory/dockertest/v3 v3.10.0
 	github.com/rs/xid v1.2.1
 	github.com/spf13/viper v1.7.0

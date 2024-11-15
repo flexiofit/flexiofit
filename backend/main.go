@@ -1,134 +1,186 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+    "context"
+    "database/sql"
+    "fmt"
+    "net/http"
+    "os"
+    "os/signal"
+    "syscall"
+    "time"
 
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+    "go.uber.org/zap"
+    "go.uber.org/zap/zapcore"
 
-	"github.com/aliml92/realworld-gin-sqlc/api"
-	conf "github.com/aliml92/realworld-gin-sqlc/config"
-	db "github.com/aliml92/realworld-gin-sqlc/db/sqlc"
-	"github.com/aliml92/realworld-gin-sqlc/logger"
-	"github.com/aliml92/realworld-gin-sqlc/search/typesense"
+    "github.com/flexiofit/flexiofit/backend/api"
+    "github.com/flexiofit/flexiofit/backend/config"  // Ensure correct import
+    "github.com/flexiofit/flexiofit/backend/logger"
+    "github.com/flexiofit/flexiofit/backend/search/typesense"
+    "github.com/joho/godotenv"
 )
 
-// @produce	application/json
-// @consumes application/json
+type serverConfig struct {
+    log        logger.Logger
+    config     config.Config  // Change to config.Config
+    dbConn     *sql.DB
+    store      db.Store
+    tsHandler  *typesense.TypesenseHandler
+}
 
-// @securityDefinitions.apiKey  Bearer
-// @in header
-// @name Authorization
+func setupLogger(env string) logger.Logger {
+    var logger *zap.Logger
+    var err error
+
+    switch env {
+    case "test":
+        atom := zap.NewAtomicLevel()
+        atom.SetLevel(zapcore.ErrorLevel)
+        zapConfig := zap.NewDevelopmentConfig()
+        zapConfig.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+        zapConfig.Level = atom
+        logger, err = zapConfig.Build()
+    case "dev", "":
+        logger, err = zap.NewDevelopment()
+    default:
+        logger, err = zap.NewProduction()
+    }
+
+    if err != nil {
+        panic(fmt.Sprintf("failed to initialize logger: %v", err))
+    }
+    
+    return logger.Sugar() // Ensure you return the SugaredLogger
+}
+
+func buildDBUrl(config config.Config, env string) string {  // Change to config.Config
+    dbName := config.DBDbName
+    if env == "test" {
+        dbName = config.DBDbNameTest
+    }
+    
+    return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+        config.DB_USERNAME,
+        config.DB_PASSWORD,
+        config.DB_HOSTNAME,
+        config.DB_PORT,
+        dbName,  // Use dbName from config
+    )
+}
+
+func initializeServer(env string) *serverConfig {
+    // Set default environment to "dev" if not provided
+    if env == "" {
+        env = "dev"
+    }
+
+    // Load environment variables from the correct file in the `env` folder
+    envFile := fmt.Sprintf("./env/%s.env", env)
+    if err := godotenv.Load(envFile); err != nil {
+        fmt.Printf("Warning: Error loading %s file: %v\n", envFile, err)
+    } else {
+        fmt.Println("Environment variables loaded successfully from:", envFile)
+    }
+
+    // Initialize components
+    log := setupLogger(env)
+    config := config.LoadConfig(env, "./env")  // Ensure correct config package
+    log.Infow("Loaded config", "environment", env, "config", config)
+
+    // Set up database connection
+    config.DBUrl = buildDBUrl(config, env)
+    log.Infow("Database configuration", "url", config.DBUrl)
+    
+    fmt.Println("Connecting to the database...")
+    dbConn := db.Connect(config)
+    fmt.Println("Connected to the database successfully")
+    if dbConn == nil {
+        log.Fatal("Failed to connect to database")
+    }
+
+    log.Info("Successfully connected to database")
+
+    if err := db.AutoMigrate(config); err != nil {
+        log.Fatalf("Failed to run migrations: %v", err)
+    }
+
+    log.Info("Database migrations completed successfully")
+
+    // Initialize store and typesense
+    store := db.NewConduitStore(dbConn)
+    tsClient := typesense.NewClient(&config)
+    tsHandler := typesense.NewTypesenseHandler(tsClient, "articles")
+    
+    if err := tsHandler.CreateCollection(); err != nil {
+        log.Fatalf("Failed to create typesense collection: %v", err)
+    }
+
+    log.Info("Typesense collection created successfully")
+
+    return &serverConfig{
+        log:       log,
+        config:    config,
+        dbConn:    dbConn,
+        store:     store,
+        tsHandler: tsHandler,
+    }
+}
+
+func setupServer(sc *serverConfig) *http.Server {
+    server := api.NewServer(
+        sc.config,
+        sc.store,
+        sc.tsHandler,
+        sc.log,
+    )
+
+    server.MountHandlers()
+    server.MountSwaggerHandlers()
+
+    addr := fmt.Sprintf(":%s", sc.config.Port)
+    sc.log.Infow("Server configuration", "address", addr)
+    
+    return &http.Server{
+        Addr:    addr,
+        Handler: server.Router(),
+    }
+}
+
+func runServer(srv *http.Server, log logger.Logger) {
+    // Launch server in a goroutine
+    go func() {
+        log.Infof("Starting server on %s", srv.Addr)
+        if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+            log.Fatalf("Error starting server: %v", err)
+        }
+    }()
+
+    // Wait for interrupt signal to gracefully shutdown the server
+    quit := make(chan os.Signal, 1)
+    signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+    <-quit
+    log.Info("Shutdown Server ...")
+
+    // Graceful shutdown with a timeout
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // Increased timeout
+    defer cancel()
+    if err := srv.Shutdown(ctx); err != nil {
+        log.Fatalf("Server forced to shutdown: %v", err)
+    }
+
+    log.Info("Server exiting")
+}
+
 func main() {
-	var (
-		log    logger.Logger
-		config conf.Config
-	)
-	env := os.Getenv("ENVIRONMENT")
-	if env == "" || env == "dev" {
-
-		// set up logger for dev
-		env = "dev"
-		logger, _ := zap.NewDevelopment()
-		defer logger.Sync()
-		log = logger.Sugar()
-		config = conf.LoadConfig(env, "./env")
-
-	} else if env == "test" {
-
-		// set up logger for test
-		atom := zap.NewAtomicLevel()
-		atom.SetLevel(zapcore.ErrorLevel)
-		zapConfig := zap.NewDevelopmentConfig()
-		zapConfig.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		zapConfig.Level = atom
-		logger, _ := zapConfig.Build()
-		defer logger.Sync()
-		log = logger.Sugar()
-
-		config = conf.LoadConfig(env, "./env")
-
-		// set up test db
-		db.InitTestDB(&config)
-		// wait for db container to be ready
-		time.Sleep(5 * time.Second)
-
-	} else {
-
-		// set up logger for prod, yet to be refined
-		logger, _ := zap.NewProduction()
-		defer logger.Sync()
-		log = logger.Sugar()
-		config = conf.LoadConfig(env, "./env")
-	}
-	config.DBUrl = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		config.DBUsername,
-		config.DBPassword,
-		config.DBHost,
-		config.DBPort,
-		config.DBName,
-	)
-
-	dbConn := db.Connect(config)
-	defer db.Close(dbConn)
-
-	db.AutoMigrate(config)
-
-	store := db.NewConduitStore(dbConn)
-
-	tsClient := typesense.NewClient(&config)
-	tsHandler := typesense.NewTypesenseHandler(tsClient, "articles")
-	err := tsHandler.CreateCollection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	server := api.NewServer(
-		config,
-		store,
-		tsHandler,
-		log,
-	)
-
-	server.MountHandlers()
-	server.MountSwaggerHandlers()
-
-	addr := fmt.Sprintf(":%s", config.Port)
-
-	// add graceful shutdown
-	srv := &http.Server{
-		Addr:    addr,
-		Handler: server.Router(),
-	}
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
-		}
-	}()
-
-	// Wait for interrupt signal to gracefully shutdown the server with
-	// a timeout of 5 seconds.
-	quit := make(chan os.Signal, 1)
-	// kill (no param) default send syscall.SIGTERM
-	// kill -2 is syscall.SIGINT
-	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Info("Shutdown Server ...")
-
-	// The context is used to inform the server it has 5 seconds to finish
-	// the request it is currently handling
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown: ", err)
-	}
-
-	log.Info("Server exiting")
+    env := os.Getenv("ENVIRONMENT")
+    sc := initializeServer(env)
+    defer func() {
+        if err := sc.dbConn.Close(); err != nil {
+            sc.log.Errorf("Error closing database connection: %v", err)
+        }
+    }()
+    
+    srv := setupServer(sc)
+    sc.log.Info("Server setup complete, starting...")
+    runServer(srv, sc.log)
 }
