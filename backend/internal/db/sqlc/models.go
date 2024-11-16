@@ -5,18 +5,13 @@
 package db
 
 import (
-	"github.com/jackc/pgx/v5/pgtype"
+	"database/sql"
 )
 
 type User struct {
-	ID           pgtype.UUID
-	Email        string
-	Username     string
-	FullName     string
-	PasswordHash string
-	Bio          pgtype.Text
-	AvatarUrl    pgtype.Text
-	IsActive     bool
-	CreatedAt    pgtype.Timestamptz
-	UpdatedAt    pgtype.Timestamptz
+	ID        int32        `json:"id"`
+	Username  string       `json:"username"`
+	Email     string       `json:"email"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
 }

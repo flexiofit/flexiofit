@@ -4,50 +4,30 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
-	"backend/internal/config"
-	"backend/internal/db"
-	"backend/internal/handlers"
-	"backend/internal/services"
-	"backend/internal/repositories"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	db "backend/internal/db/sqlc"
+	"backend/internal/handlers"
+	"backend/internal/services"
 )
 
 func main() {
-	// Load configuration
-	cfg, err := config.LoadConfig(".")
+	// Initialize database connection pool
+	dbpool, err := pgxpool.New(context.Background(), "postgresql://postgres:postgres@localhost:5432/mydb")
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		log.Printf("Unable to connect to database: %v\n", err)
+		os.Exit(1)
 	}
+	defer dbpool.Close()
 
-	// Initialize database connection
-	dbPool, err := db.NewConnection(db.Config{
-		Host:     cfg.DBHost,
-		Port:     cfg.DBPort,
-		User:     cfg.DBUser,
-		Password: cfg.DBPassword,
-		DBName:   cfg.DBName,
-		SSLMode:  cfg.DBSSLMode,
-	})
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-	defer dbPool.Close()
+	// Initialize database queries
+	queries := db.New(dbpool)
 
-	// Initialize SQLC queries
-	queries := db.New(dbPool)
-
-	// Initialize repositories
-	userRepo := repositories.NewUserRepository(queries)
-
-	// Initialize services
-	userService := services.NewUserService(userRepo)
+	// Initialize service layer
+	userService := services.NewUserService(queries)
 
 	// Initialize Gin router
 	router := gin.Default()
@@ -56,30 +36,7 @@ func main() {
 	handlers.NewUserHandler(router, userService)
 
 	// Start server
-	srv := &http.Server{
-		Addr:    ":" + cfg.ServerPort,
-		Handler: router,
+	if err := router.Run(":8080"); err != nil {
+		log.Fatal("Failed to start server:", err)
 	}
-
-	// Graceful shutdown
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Failed to start server: %v", err)
-		}
-	}()
-
-	// Wait for interrupt signal to gracefully shutdown
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutting down server...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
-	}
-
-	log.Println("Server exiting")
 }

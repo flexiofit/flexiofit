@@ -2,41 +2,20 @@
 package db
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
-
-	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/lib/pq" // Postgres driver
 )
 
-type Config struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	DBName   string
-	SSLMode  string
-}
-
-func NewConnection(config Config) (*pgxpool.Pool, error) {
-	connStr := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		config.Host, config.Port, config.User, config.Password, config.DBName, config.SSLMode,
-	)
-
-	poolConfig, err := pgxpool.ParseConfig(connStr)
+func NewDBConnection(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse database config: %v", err)
+		return nil, fmt.Errorf("could not open db connection: %v", err)
 	}
 
-	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create connection pool: %v", err)
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("could not ping db: %v", err)
 	}
 
-	// Verify connection
-	if err := pool.Ping(context.Background()); err != nil {
-		return nil, fmt.Errorf("unable to ping database: %v", err)
-	}
-
-	return pool, nil
+	return db, nil
 }
