@@ -17,8 +17,10 @@ vendor/
 # Go workspace file
 go.work
 
-# Environment variables
-.env
+# Environment files
+app.env
+*.env
+!app.env.example
 
 # IDE specific files
 .idea/
