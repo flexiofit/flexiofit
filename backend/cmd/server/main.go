@@ -2,45 +2,64 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"log"
-	// "os"
-	"time"
-
-	"database/sql"
-	"github.com/gin-gonic/gin"
-	_ "github.com/jackc/pgx/v5/stdlib"
-
 	"backend/internal/config"
 	db "backend/internal/db/sqlc"
 	"backend/internal/handlers"
 	"backend/internal/services"
+	"context"
+	"database/sql"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"log"
+	"time"
 )
+
+// runDatabaseMigrations handles the database migration process
+func runDatabaseMigrations(db *sql.DB, migrationPath string) error {
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return fmt.Errorf("could not create migration driver: %v", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://"+migrationPath,
+		"postgres",
+		driver,
+	)
+	if err != nil {
+		return fmt.Errorf("could not create migrate instance: %v", err)
+	}
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("could not run migrations: %v", err)
+	}
+
+	version, dirty, err := m.Version()
+	if err != nil && err != migrate.ErrNilVersion {
+		return fmt.Errorf("could not get migration version: %v", err)
+	}
+
+	log.Printf("Database migration completed. Version: %d, Dirty: %v", version, dirty)
+	return nil
+}
 
 // setupDBPool configures and validates the database connection pool
 func setupDBPool(db *sql.DB, config config.Config) error {
-	// Set maximum number of open connections
 	db.SetMaxOpenConns(config.DBMaxOpenConns)
-
-	// Set maximum number of idle connections
 	db.SetMaxIdleConns(config.DBMaxIdleConns)
-
-	// Set maximum lifetime of a connection
 	db.SetConnMaxLifetime(time.Duration(config.DBConnMaxLifetime) * time.Minute)
-
-	// Set maximum idle time for connections
 	db.SetConnMaxIdleTime(time.Duration(config.DBConnMaxIdleTime) * time.Minute)
 
-	// Create a context with timeout for connection validation
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Verify connection pool
 	if err := db.PingContext(ctx); err != nil {
 		return fmt.Errorf("failed to verify database connection: %v", err)
 	}
-
 	return nil
 }
 
@@ -51,7 +70,6 @@ func waitForDB(config config.Config, maxAttempts int, retryDelay time.Duration) 
 		err error
 	)
 
-	// Create basic connection string without pool parameters
 	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
 		config.DBUser,
 		config.DBPassword,
@@ -79,30 +97,30 @@ func waitForDB(config config.Config, maxAttempts int, retryDelay time.Duration) 
 		log.Printf("Successfully connected to database (attempt %d/%d)", attempt, maxAttempts)
 		return db, nil
 	}
-
 	return nil, fmt.Errorf("failed to connect to database after %d attempts", maxAttempts)
 }
 
 func main() {
-	// Load configuration
 	config, err := config.LoadConfig(".")
 	if err != nil {
 		log.Fatal("Cannot load config:", err)
 	}
 
-	// Attempt to connect to the database with retries
 	dbConn, err := waitForDB(config, config.DBConnectRetries, time.Duration(config.DBConnectRetryDelay)*time.Second)
 	if err != nil {
 		log.Fatal("Failed to initialize database connection:", err)
 	}
 	defer dbConn.Close()
 
-	// Start a background health check if enabled
+	// Run database migrations
+	if err := runDatabaseMigrations(dbConn, "./internal/db/migrations"); err != nil {
+		log.Fatal("Failed to run database migrations:", err)
+	}
+
 	if config.DBHealthCheckPeriod > 0 {
 		go func() {
 			ticker := time.NewTicker(time.Duration(config.DBHealthCheckPeriod) * time.Second)
 			defer ticker.Stop()
-
 			for {
 				select {
 				case <-ticker.C:
@@ -116,19 +134,11 @@ func main() {
 		}()
 	}
 
-	// Initialize database queries
 	queries := db.New(dbConn)
-
-	// Initialize service layer
 	userService := services.NewUserService(queries)
-
-	// Initialize Gin router
 	router := gin.Default()
-
-	// Initialize handlers
 	handlers.NewUserHandler(router, userService)
 
-	// Start server with configured host and port
 	serverAddr := fmt.Sprintf("%s:%s", config.ServerHost, config.ServerPort)
 	if err := router.Run(serverAddr); err != nil {
 		log.Fatal("Failed to start server:", err)
