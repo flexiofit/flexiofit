@@ -51,6 +51,53 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'employee',
+    path: '/employee',
+    component: 'layout.base$view.employee',
+    meta: {
+      title: 'employee',
+      i18nKey: 'route.employee',
+      icon: 'mdi:monitor-dashboard',
+      order: 1
+    },
+    children: [
+      {
+        name: '500',
+        path: '/500',
+        component: 'layout.blank$view.500',
+        meta: {
+          title: '500',
+          i18nKey: 'route.500',
+          constant: true,
+          hideInMenu: true
+        }
+      },
+      {
+        name: '500',
+        path: '/500',
+        component: 'layout.blank$view.500',
+        meta: {
+          title: '500',
+          i18nKey: 'route.500',
+          constant: true,
+          hideInMenu: false
+        }
+      },
+      {
+        name: 'login',
+        path: '/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?',
+        component: 'layout.blank$view.login',
+        props: true,
+        meta: {
+          title: 'login',
+          i18nKey: 'route.login',
+          constant: true,
+          hideInMenu: false
+        }
+      }
+    ]
+  },
+  {
     name: 'iframe-page',
     path: '/iframe-page/:url',
     component: 'layout.base$view.iframe-page',

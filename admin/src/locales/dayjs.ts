@@ -14,7 +14,7 @@ export function setDayjsLocale(lang: App.I18n.LangType = 'en-US') {
     'en-US': 'en'
   } satisfies Record<App.I18n.LangType, string>;
 
-  const l = lang || localStg.get('lang') || 'zh-CN';
+  const l = lang || localStg.get('lang') || 'en-US';
 
   locale(localMap[l]);
 }
