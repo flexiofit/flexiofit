@@ -5,21 +5,24 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"backend/internal/services"
+	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
-	service *services.UserService // renamed from services to service for clarity
+	service *services.UserService
 }
 
-func NewUserHandler(r *gin.Engine, s *services.UserService) {
-	handler := &UserHandler{service: s}
-	r.POST("/users", handler.CreateUser)
-	r.GET("/users/:id", handler.GetUserByID)
-	r.PUT("/users/:id", handler.UpdateUser)
-	r.DELETE("/users/:id", handler.DeleteUser)
-	r.GET("/users", handler.ListUsers)
+func NewUserHandler(userService *services.UserService) *UserHandler {
+	return &UserHandler{service: userService}
+}
+
+func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
+	rg.POST("/users", h.CreateUser)
+	rg.GET("/users/:id", h.GetUserByID)
+	rg.PUT("/users/:id", h.UpdateUser)
+	rg.DELETE("/users/:id", h.DeleteUser)
+	rg.GET("/users", h.ListUsers)
 }
 
 // CreateUser handles POST /users
@@ -28,18 +31,15 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		Username string `json:"username" binding:"required"`
 		Email    string `json:"email" binding:"required,email"`
 	}
-
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	user, err := h.service.CreateUser(c, input.Username, input.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusCreated, user)
 }
 
@@ -50,13 +50,11 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 		return
 	}
-
 	user, err := h.service.GetUserByID(c, int32(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
-
 	c.JSON(http.StatusOK, user)
 }
 
@@ -67,23 +65,19 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 		return
 	}
-
 	var input struct {
 		Username string `json:"username" binding:"required"`
 		Email    string `json:"email" binding:"required,email"`
 	}
-
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	user, err := h.service.UpdateUser(c, int32(id), input.Username, input.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, user)
 }
 
@@ -94,13 +88,11 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 		return
 	}
-
 	if err := h.service.DeleteUser(c, int32(id)); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
-
-	c.Status(http.StatusNoContent) // Changed from c.JSON for proper 204 response
+	c.Status(http.StatusNoContent)
 }
 
 // ListUsers handles GET /users
@@ -110,6 +102,5 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, users)
 }

@@ -10,7 +10,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/gin-gonic/gin"
+	// "github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -157,11 +157,14 @@ func main() {
 		}()
 	}
 
-	// Setup services and routes
+	// Setup database queries
 	queries := db.New(dbConn)
-	userService := services.NewUserService(queries)
-	router := gin.Default()
-	handlers.NewUserHandler(router, userService)
+
+	// Initialize all services with database queries
+	allServices := services.NewServices(queries)
+
+	// Setup router dynamically with services
+	router := handlers.SetupRouter(allServices)
 
 	// Start server
 	serverAddr := fmt.Sprintf("%s:%s", config.ServerHost, config.ServerPort)
