@@ -18,11 +18,14 @@ func NewUserHandler(userService *services.UserService) *UserHandler {
 }
 
 func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
-	rg.POST("/users", h.CreateUser)
-	rg.GET("/users/:id", h.GetUserByID)
-	rg.PUT("/users/:id", h.UpdateUser)
-	rg.DELETE("/users/:id", h.DeleteUser)
-	rg.GET("/users", h.ListUsers)
+	userGroup := rg.Group("/users")
+	{
+		userGroup.POST("", h.CreateUser)
+		userGroup.GET("/:id", h.GetUserByID)
+		userGroup.PUT("/:id", h.UpdateUser)
+		userGroup.DELETE("/:id", h.DeleteUser)
+		userGroup.GET("", h.ListUsers)
+	}
 }
 
 // CreateUser handles POST /users
