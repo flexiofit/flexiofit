@@ -2,6 +2,7 @@
 package main
 
 import (
+	"backend/api/docs"
 	"backend/internal/config"
 	db "backend/internal/db/sqlc"
 	"backend/internal/handlers"
@@ -10,13 +11,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	// "github.com/swaggo/swag"
 	"go.uber.org/zap"
-	"time"
 )
 
 // runDatabaseMigrations handles the database migration process
@@ -161,6 +166,12 @@ func main() {
 	queries := db.New(dbConn)
 	userService := services.NewUserService(queries)
 	router := gin.Default()
+
+	// Setup Swagger docs
+	docs.SwaggerInfo.BasePath = "/api/v1"
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Setup API routes
 	handlers.NewUserHandler(router, userService)
 
 	// Start server
