@@ -3,7 +3,10 @@ package handlers
 
 import (
 	"backend/internal/services"
+
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // Handler interface defines a contract for all handlers
@@ -15,6 +18,10 @@ type Handler interface {
 func SetupRouter(services *services.Services) *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api/v1")
+
+	// Swagger route
+
+	api.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// List of all handlers
 	handlers := []Handler{

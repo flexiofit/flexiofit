@@ -17,7 +17,15 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 	"time"
+
+	_ "backend/api/docs"
 )
+
+// @title           FlexioFit API
+// @version         1.0
+// @description     Backend API for FlexioFit application
+// @host            localhost:8080
+// @BasePath        /api/v1  // Ensure this matches your actual API route group
 
 // runDatabaseMigrations handles the database migration process
 func runDatabaseMigrations(db *sql.DB, migrationPath string) error {
