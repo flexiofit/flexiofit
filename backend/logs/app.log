@@ -1,0 +1,6 @@
+2024-11-18T23:36:51.910+0530	[34mINFO[0m	server/main.go:109	Successfully connected to database	{"attempt": 1, "max_attempts": 5}
+2024-11-18T23:36:51.919+0530	[34mINFO[0m	server/main.go:47	Database migration completed	{"version": 2, "dirty": false}
+2024-11-18T23:36:51.919+0530	[34mINFO[0m	server/main.go:169	Starting server	{"host": "localhost", "port": "8080"}
+2024-11-18 23:41:34.253 IST	[34mINFO[0m	/home/kitparl/Documents/Projects/flexiofit/backend/cmd/server/main.go:109	Successfully connected to database	{"attempt": 1, "max_attempts": 5}
+2024-11-18 23:41:34.263 IST	[34mINFO[0m	/home/kitparl/Documents/Projects/flexiofit/backend/cmd/server/main.go:47	Database migration completed	{"version": 2, "dirty": false}
+2024-11-18 23:41:34.263 IST	[34mINFO[0m	/home/kitparl/Documents/Projects/flexiofit/backend/cmd/server/main.go:168	Starting server	{"host": "localhost", "port": "8080"}

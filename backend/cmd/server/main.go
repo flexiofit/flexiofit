@@ -5,6 +5,7 @@ import (
 	"backend/internal/config"
 	db "backend/internal/db/sqlc"
 	"backend/internal/handlers"
+	"backend/internal/logging"
 	"backend/internal/services"
 	"context"
 	"database/sql"
@@ -14,7 +15,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"log"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -43,7 +44,10 @@ func runDatabaseMigrations(db *sql.DB, migrationPath string) error {
 		return fmt.Errorf("could not get migration version: %v", err)
 	}
 
-	log.Printf("Database migration completed. Version: %d, Dirty: %v", version, dirty)
+	logging.Log.Info("Database migration completed",
+		zap.Uint("version", version),
+		zap.Bool("dirty", dirty),
+	)
 	return nil
 }
 
@@ -82,19 +86,30 @@ func waitForDB(config config.Config, maxAttempts int, retryDelay time.Duration) 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		db, err = sql.Open("pgx", dsn)
 		if err != nil {
-			log.Printf("Failed to open database (attempt %d/%d): %v", attempt, maxAttempts, err)
+			logging.Log.Warn("Failed to open database",
+				zap.Int("attempt", attempt),
+				zap.Int("max_attempts", maxAttempts),
+				zap.Error(err),
+			)
 			time.Sleep(retryDelay)
 			continue
 		}
 
 		if err = setupDBPool(db, config); err != nil {
-			log.Printf("Failed to setup database pool (attempt %d/%d): %v", attempt, maxAttempts, err)
+			logging.Log.Warn("Failed to setup database pool",
+				zap.Int("attempt", attempt),
+				zap.Int("max_attempts", maxAttempts),
+				zap.Error(err),
+			)
 			db.Close()
 			time.Sleep(retryDelay)
 			continue
 		}
 
-		log.Printf("Successfully connected to database (attempt %d/%d)", attempt, maxAttempts)
+		logging.Log.Info("Successfully connected to database",
+			zap.Int("attempt", attempt),
+			zap.Int("max_attempts", maxAttempts),
+		)
 		return db, nil
 	}
 	return nil, fmt.Errorf("failed to connect to database after %d attempts", maxAttempts)
@@ -103,20 +118,28 @@ func waitForDB(config config.Config, maxAttempts int, retryDelay time.Duration) 
 func main() {
 	config, err := config.LoadConfig(".")
 	if err != nil {
-		log.Fatal("Cannot load config:", err)
+		logging.Log.Fatal("Cannot load config", zap.Error(err))
 	}
 
+	// Initialize logger
+	if err := logging.InitializeLogger(config.ToLoggerConfig()); err != nil {
+		logging.Log.Fatal("Failed to initialize logger", zap.Error(err))
+	}
+	defer logging.Sync()
+
+	// Database connection
 	dbConn, err := waitForDB(config, config.DBConnectRetries, time.Duration(config.DBConnectRetryDelay)*time.Second)
 	if err != nil {
-		log.Fatal("Failed to initialize database connection:", err)
+		logging.Log.Fatal("Failed to initialize database connection", zap.Error(err))
 	}
 	defer dbConn.Close()
 
 	// Run database migrations
 	if err := runDatabaseMigrations(dbConn, "./internal/db/migrations"); err != nil {
-		log.Fatal("Failed to run database migrations:", err)
+		logging.Log.Fatal("Failed to run database migrations", zap.Error(err))
 	}
 
+	// Database health check
 	if config.DBHealthCheckPeriod > 0 {
 		go func() {
 			ticker := time.NewTicker(time.Duration(config.DBHealthCheckPeriod) * time.Second)
@@ -126,7 +149,7 @@ func main() {
 				case <-ticker.C:
 					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 					if err := dbConn.PingContext(ctx); err != nil {
-						log.Printf("Database health check failed: %v", err)
+						logging.Log.Error("Database health check failed", zap.Error(err))
 					}
 					cancel()
 				}
@@ -134,13 +157,20 @@ func main() {
 		}()
 	}
 
+	// Setup services and routes
 	queries := db.New(dbConn)
 	userService := services.NewUserService(queries)
 	router := gin.Default()
 	handlers.NewUserHandler(router, userService)
 
+	// Start server
 	serverAddr := fmt.Sprintf("%s:%s", config.ServerHost, config.ServerPort)
+	logging.Log.Info("Starting server",
+		zap.String("host", config.ServerHost),
+		zap.String("port", config.ServerPort),
+	)
+
 	if err := router.Run(serverAddr); err != nil {
-		log.Fatal("Failed to start server:", err)
+		logging.Log.Fatal("Failed to start server", zap.Error(err))
 	}
 }
