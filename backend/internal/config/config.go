@@ -38,6 +38,9 @@ type Config struct {
 	LogMaxAge      int    `mapstructure:"LOG_MAX_AGE"`
 	LogCompress    bool   `mapstructure:"LOG_COMPRESS"`
 	LogDevelopment bool   `mapstructure:"LOG_DEVELOPMENT"`
+
+	// Migration setting
+	EnableMigration bool `mapstructure:"ENABLE_MIGRATION"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -63,6 +66,8 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetDefault("LOG_MAX_AGE", 28)
 	viper.SetDefault("LOG_COMPRESS", true)
 	viper.SetDefault("LOG_DEVELOPMENT", false)
+
+	viper.SetDefault("ENABLE_MIGRATION", false)
 
 	err = viper.ReadInConfig()
 	if err != nil {

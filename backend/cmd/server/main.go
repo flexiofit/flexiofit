@@ -2,38 +2,59 @@
 package main
 
 import (
+	"context"
+	"database/sql"
+	"fmt"
+	"time"
+
 	"backend/internal/config"
 	db "backend/internal/db/sqlc"
 	"backend/internal/handlers"
 	"backend/internal/logging"
 	"backend/internal/services"
-	"context"
-	"database/sql"
-	"fmt"
-	// "github.com/gin-gonic/gin"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
-	"time"
-
-	_ "backend/api/docs"
+	postgresGorm "gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-// @title           FlexioFit API
-// @version         1.0
-// @description     Backend API for FlexioFit application
-// @host            localhost:8080
-// @BasePath        /api/v1  // Ensure this matches your actual API route group
+func setupGormDB(config config.Config) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		config.DBHost,
+		config.DBPort,
+		config.DBUser,
+		config.DBPassword,
+		config.DBName,
+		config.DBSSLMode,
+	)
 
-// runDatabaseMigrations handles the database migration process
+	db, err := gorm.Open(postgresGorm.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %v", err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get SQL database: %v", err)
+	}
+
+	sqlDB.SetMaxOpenConns(config.DBMaxOpenConns)
+	sqlDB.SetMaxIdleConns(config.DBMaxIdleConns)
+	sqlDB.SetConnMaxLifetime(time.Duration(config.DBConnMaxLifetime) * time.Minute)
+	sqlDB.SetConnMaxIdleTime(time.Duration(config.DBConnMaxIdleTime) * time.Minute)
+
+	return db, nil
+}
+
 func runDatabaseMigrations(db *sql.DB, migrationPath string) error {
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
 		return fmt.Errorf("could not create migration driver: %v", err)
 	}
-
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://"+migrationPath,
 		"postgres",
@@ -59,92 +80,36 @@ func runDatabaseMigrations(db *sql.DB, migrationPath string) error {
 	return nil
 }
 
-// setupDBPool configures and validates the database connection pool
-func setupDBPool(db *sql.DB, config config.Config) error {
-	db.SetMaxOpenConns(config.DBMaxOpenConns)
-	db.SetMaxIdleConns(config.DBMaxIdleConns)
-	db.SetConnMaxLifetime(time.Duration(config.DBConnMaxLifetime) * time.Minute)
-	db.SetConnMaxIdleTime(time.Duration(config.DBConnMaxIdleTime) * time.Minute)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := db.PingContext(ctx); err != nil {
-		return fmt.Errorf("failed to verify database connection: %v", err)
-	}
-	return nil
-}
-
-// waitForDB attempts to connect to the database with retries
-func waitForDB(config config.Config, maxAttempts int, retryDelay time.Duration) (*sql.DB, error) {
-	var (
-		db  *sql.DB
-		err error
-	)
-
-	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s",
-		config.DBUser,
-		config.DBPassword,
-		config.DBHost,
-		config.DBPort,
-		config.DBName,
-		config.DBSSLMode,
-	)
-
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		db, err = sql.Open("pgx", dsn)
-		if err != nil {
-			logging.Log.Warn("Failed to open database",
-				zap.Int("attempt", attempt),
-				zap.Int("max_attempts", maxAttempts),
-				zap.Error(err),
-			)
-			time.Sleep(retryDelay)
-			continue
-		}
-
-		if err = setupDBPool(db, config); err != nil {
-			logging.Log.Warn("Failed to setup database pool",
-				zap.Int("attempt", attempt),
-				zap.Int("max_attempts", maxAttempts),
-				zap.Error(err),
-			)
-			db.Close()
-			time.Sleep(retryDelay)
-			continue
-		}
-
-		logging.Log.Info("Successfully connected to database",
-			zap.Int("attempt", attempt),
-			zap.Int("max_attempts", maxAttempts),
-		)
-		return db, nil
-	}
-	return nil, fmt.Errorf("failed to connect to database after %d attempts", maxAttempts)
-}
-
 func main() {
 	config, err := config.LoadConfig(".")
 	if err != nil {
 		logging.Log.Fatal("Cannot load config", zap.Error(err))
 	}
 
-	// Initialize logger
 	if err := logging.InitializeLogger(config.ToLoggerConfig()); err != nil {
 		logging.Log.Fatal("Failed to initialize logger", zap.Error(err))
 	}
 	defer logging.Sync()
 
-	// Database connection
-	dbConn, err := waitForDB(config, config.DBConnectRetries, time.Duration(config.DBConnectRetryDelay)*time.Second)
+	// Setup GORM database connection
+	gormDB, err := setupGormDB(config)
 	if err != nil {
-		logging.Log.Fatal("Failed to initialize database connection", zap.Error(err))
+		logging.Log.Fatal("Failed to initialize GORM database connection", zap.Error(err))
 	}
-	defer dbConn.Close()
+
+	// Get SQL database for SQLC
+	sqlDB, err := gormDB.DB()
+	if err != nil {
+		logging.Log.Fatal("Failed to get SQL database", zap.Error(err))
+	}
 
 	// Run database migrations
-	if err := runDatabaseMigrations(dbConn, "./internal/db/migrations"); err != nil {
-		logging.Log.Fatal("Failed to run database migrations", zap.Error(err))
+	if config.EnableMigration {
+		if err := runDatabaseMigrations(sqlDB, "./internal/db/migrations"); err != nil {
+			logging.Log.Fatal("Failed to run database migrations", zap.Error(err))
+		}
+	} else {
+		logging.Log.Info("Database migrations are disabled")
 	}
 
 	// Database health check
@@ -152,26 +117,24 @@ func main() {
 		go func() {
 			ticker := time.NewTicker(time.Duration(config.DBHealthCheckPeriod) * time.Second)
 			defer ticker.Stop()
-			for {
-				select {
-				case <-ticker.C:
-					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-					if err := dbConn.PingContext(ctx); err != nil {
-						logging.Log.Error("Database health check failed", zap.Error(err))
-					}
-					cancel()
+			for range ticker.C {
+				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+				if err := sqlDB.PingContext(ctx); err != nil {
+					logging.Log.Error("Database health check failed", zap.Error(err))
 				}
+				cancel()
 			}
 		}()
 	}
 
-	// Setup database queries
-	queries := db.New(dbConn)
+	// Setup SQLC queries
+	queries := db.New(sqlDB)
 
-	// Initialize all services with database queries
-	allServices := services.NewServices(queries)
+	// Initialize services with both SQLC and GORM
+	// allServices := services.NewServices(queries)
+	allServices := services.NewServices(queries, gormDB)
 
-	// Setup router dynamically with services
+	// Setup router
 	router := handlers.SetupRouter(allServices)
 
 	// Start server
