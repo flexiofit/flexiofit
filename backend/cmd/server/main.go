@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"backend/internal/config"
-	db "backend/internal/db/sqlc"
 	"backend/internal/handlers"
 	"backend/internal/logging"
 	"backend/internal/models"
@@ -140,12 +139,9 @@ func main() {
 		}()
 	}
 
-	// Setup SQLC queries
-	queries := db.New(sqlDB)
-
 	// Initialize services with both SQLC and GORM
 	// allServices := services.NewServices(queries)
-	allServices := services.NewServices(queries, gormDB)
+	allServices := services.NewServices(gormDB)
 
 	// Setup router
 	router := handlers.SetupRouter(allServices)

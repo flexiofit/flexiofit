@@ -46,6 +46,7 @@ func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
 		users.GET("/:id", h.GetUserByID)
 		users.PUT("/:id", h.UpdateUser)
 		users.DELETE("/:id", h.DeleteUser)
+		users.GET("", h.GetUsers)
 	}
 }
 
@@ -108,4 +109,16 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusNoContent, nil)
+}
+
+func (h *UserHandler) GetUsers(c *gin.Context) {
+	// Call service method to get all users
+	users, err := h.service.ListUsers(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve users"})
+		return
+	}
+
+	// Return the list of users
+	c.JSON(http.StatusOK, users)
 }
