@@ -11,6 +11,7 @@ import (
 	db "backend/internal/db/sqlc"
 	"backend/internal/handlers"
 	"backend/internal/logging"
+	"backend/internal/models"
 	"backend/internal/services"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -111,6 +112,18 @@ func main() {
 	} else {
 		logging.Log.Info("Database migrations are disabled")
 	}
+
+	// Run GORM automatic migrations for registered models
+	if err := models.AutoMigrateDB(gormDB); err != nil {
+		logging.Log.Fatal("Failed to run GORM auto migration",
+			zap.Error(err),
+			zap.Strings("registered_models", models.GetRegisteredModels(gormDB)),
+		)
+	}
+
+	logging.Log.Info("GORM auto migration completed successfully",
+		zap.Strings("migrated_models", models.GetRegisteredModels(gormDB)),
+	)
 
 	// Database health check
 	if config.DBHealthCheckPeriod > 0 {
