@@ -105,19 +105,16 @@ func main() {
 
 	// Run database migrations
 	if config.EnableMigration {
-		if err := runDatabaseMigrations(sqlDB, "./internal/db/migrations"); err != nil {
-			logging.Log.Fatal("Failed to run database migrations", zap.Error(err))
+		// Run GORM automatic migrations for registered models
+		if err := models.AutoMigrateDB(gormDB); err != nil {
+			logging.Log.Fatal("Failed to run GORM auto migration",
+				zap.Error(err),
+				zap.Strings("registered_models", models.GetRegisteredModels(gormDB)),
+			)
 		}
+
 	} else {
 		logging.Log.Info("Database migrations are disabled")
-	}
-
-	// Run GORM automatic migrations for registered models
-	if err := models.AutoMigrateDB(gormDB); err != nil {
-		logging.Log.Fatal("Failed to run GORM auto migration",
-			zap.Error(err),
-			zap.Strings("registered_models", models.GetRegisteredModels(gormDB)),
-		)
 	}
 
 	logging.Log.Info("GORM auto migration completed successfully",

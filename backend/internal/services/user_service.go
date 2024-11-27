@@ -6,15 +6,16 @@ import (
 	"backend/internal/repository"
 	"context"
 	"fmt"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
-	userRepository *repository.UserRepository // Keep Gorm repository
+	// Change to use the interface instead of concrete repository type
+	userRepository repository.UserRepositoryInterface
 }
 
-func NewUserService(userRepository *repository.UserRepository) *UserService {
+// Update constructor to accept the interface
+func NewUserService(userRepository repository.UserRepositoryInterface) *UserService {
 	return &UserService{
 		userRepository: userRepository,
 	}
@@ -39,7 +40,7 @@ func (s *UserService) CreateUser(ctx context.Context, firstName, middleName, las
 		return nil, err
 	}
 
-	// Use the Gorm repository to create the user
+	// Use the repository interface method
 	if err := s.userRepository.Create(user); err != nil {
 		return nil, err
 	}
@@ -77,7 +78,7 @@ func (s *UserService) UpdateUser(ctx context.Context, id int32, firstName, middl
 		return nil, err
 	}
 
-	// Use the Gorm repository to update the user
+	// Use the repository interface method
 	if err := s.userRepository.Update(user); err != nil {
 		return nil, err
 	}
