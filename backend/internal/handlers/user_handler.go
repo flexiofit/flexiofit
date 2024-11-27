@@ -5,30 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"backend/internal/dtos"
+	"backend/internal/mappers"
 	"backend/internal/services"
 	"github.com/gin-gonic/gin"
 )
-
-type User struct {
-	ID        int32  `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
-}
-
-type CreateUserRequest struct {
-	FirstName string `json:"first_name" binding:"required"`
-	LastName  string `json:"last_name" binding:"required"`
-	Email     string `json:"email" binding:"required,email"`
-	Password  string `json:"password" binding:"required,min=6"`
-}
-
-type UpdateUserRequest struct {
-	FirstName string `json:"first_name" binding:"required"`
-	LastName  string `json:"last_name" binding:"required"`
-	Email     string `json:"email" binding:"required,email"`
-	Password  string `json:"password" binding:"min=6"`
-}
 
 type UserHandler struct {
 	service *services.UserService
@@ -38,7 +19,7 @@ func NewUserHandler(userService *services.UserService) *UserHandler {
 	return &UserHandler{service: userService}
 }
 
-// RegisterRoutes implements the Handler interface
+// RegisterRoutes sets up routes for user-related operations.
 func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	users := rg.Group("/users")
 	{
@@ -50,75 +31,96 @@ func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	}
 }
 
+// CreateUser handles the creation of a user.
 func (h *UserHandler) CreateUser(c *gin.Context) {
-	var input CreateUserRequest
+	var input dtos.CreateUserRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Call service to create a new user
 	user, err := h.service.CreateUser(c, input.FirstName, "", input.LastName, input.Email, input.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, user)
+
+	// Return created user as a DTO
+	c.JSON(http.StatusCreated, mappers.ToUserDTO(user))
 }
 
+// GetUserByID handles retrieving a user by ID.
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 		return
 	}
+
+	// Fetch user from service
 	user, err := h.service.GetUserByID(c, int32(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
-	c.JSON(http.StatusOK, user)
+
+	// Return the user as a DTO
+	c.JSON(http.StatusOK, mappers.ToUserDTO(user))
 }
 
+// UpdateUser handles updating a user by ID.
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 		return
 	}
-	var input UpdateUserRequest
+
+	var input dtos.UpdateUserRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Call service to update the user
 	user, err := h.service.UpdateUser(c, int32(id), input.FirstName, "", input.LastName, input.Email, input.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, user)
+
+	// Return updated user as a DTO
+	c.JSON(http.StatusOK, mappers.ToUserDTO(user))
 }
 
+// DeleteUser handles deleting a user by ID.
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 		return
 	}
+
+	// Call service to delete the user
 	err = h.service.DeleteUser(c, int32(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
+
 	c.JSON(http.StatusNoContent, nil)
 }
 
+// GetUsers handles retrieving all users.
 func (h *UserHandler) GetUsers(c *gin.Context) {
-	// Call service method to get all users
+	// Call service to get all users
 	users, err := h.service.ListUsers(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve users"})
 		return
 	}
 
-	// Return the list of users
-	c.JSON(http.StatusOK, users)
+	// Return the list of users as DTOs
+	c.JSON(http.StatusOK, mappers.ToUserDTOs(users))
 }
