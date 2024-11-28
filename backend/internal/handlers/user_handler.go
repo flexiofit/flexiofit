@@ -10,7 +10,7 @@ import (
 	"backend/internal/services"
 	"github.com/gin-gonic/gin"
 	r "backend/internal/resources"
-
+	// . "backend/internal/resources/errors"
 )
 
 type UserHandler struct {
@@ -74,14 +74,14 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		r.BadRequestError(c, "User not found")
 		return
 	}
 
 	// Fetch user from service
 	user, err := h.service.GetUserByID(c, int32(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		r.SendErrorResponse(c, 400, "User not found")
 		return
 	}
 
