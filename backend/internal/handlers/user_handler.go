@@ -9,6 +9,9 @@ import (
 	"backend/internal/mappers"
 	"backend/internal/services"
 	"github.com/gin-gonic/gin"
+
+
+	"fmt"
 )
 
 type UserHandler struct {
@@ -33,14 +36,17 @@ func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
 
 // CreateUser handles the creation of a user.
 func (h *UserHandler) CreateUser(c *gin.Context) {
+	fmt.Println("12 12 12")
 	var input dtos.CreateUserRequest
+	
+	fmt.Println("input", input)
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Call service to create a new user
-	user, err := h.service.CreateUser(c, input.FirstName, "", input.LastName, input.Email, input.Password)
+	user, err := h.service.CreateUser(c,input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

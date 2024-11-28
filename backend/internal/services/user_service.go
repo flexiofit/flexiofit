@@ -3,7 +3,9 @@ package services
 
 import (
 	"backend/internal/models"
+	"backend/internal/dtos"
 	"backend/internal/repository"
+	"backend/internal/resources"
 	"context"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
@@ -21,19 +23,25 @@ func NewUserService(userRepository repository.UserRepositoryInterface) *UserServ
 	}
 }
 
-func (s *UserService) CreateUser(ctx context.Context, firstName, middleName, lastName, email, password string) (*models.User, error) {
+func (s *UserService) CreateUser(ctx context.Context, input dtos.CreateUserRequest) (*models.User, error) {
 	// Hash the password
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %v", err)
 	}
 
+userType := resources.GetUserType(input.UserType)
+if userType == resources.INVALID {
+    return nil, fmt.Errorf("invalid user type: %s", input.UserType)
+}
+
 	user := &models.User{
-		FirstName:    firstName,
-		MiddleName:   middleName,
-		LastName:     lastName,
-		Email:        email,
+		FirstName:    input.FirstName,
+		MiddleName:   input.MiddleName,
+		LastName:     input.LastName,
+		Email:        input.Email,
 		PasswordHash: string(passwordHash),
+		UserType:     userType,
 	}
 
 	if err := validateUser(user); err != nil {

@@ -12,6 +12,7 @@ func ToUserDTO(user *models.User) dtos.UserDTO {
 	return dtos.UserDTO{
 		ID:        int32(user.ID), // Type conversion here
 		FirstName: user.FirstName,
+		UserType:  user.UserType.String(),
 		LastName:  user.LastName,
 		Email:     user.Email,
 	}
