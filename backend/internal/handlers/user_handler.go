@@ -9,9 +9,8 @@ import (
 	"backend/internal/mappers"
 	"backend/internal/services"
 	"github.com/gin-gonic/gin"
+	r "backend/internal/resources"
 
-
-	"fmt"
 )
 
 type UserHandler struct {
@@ -35,27 +34,42 @@ func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
 }
 
 // CreateUser handles the creation of a user.
+// func (h *UserHandler) CreateUser(c *gin.Context) {
+// 	fmt.Println("12 12 12")
+// 	var input dtos.CreateUserRequest
+//
+// 	fmt.Println("input", input)
+// 	if err := c.ShouldBindJSON(&input); err != nil {
+// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 		return
+// 	}
+//
+// 	// Call service to create a new user
+// 	user, err := h.service.CreateUser(c,input)
+// 	if err != nil {
+// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
+//
+// 	// Return created user as a DTO
+// 	c.JSON(http.StatusCreated, mappers.ToUserDTO(user))
+// }
 func (h *UserHandler) CreateUser(c *gin.Context) {
-	fmt.Println("12 12 12")
-	var input dtos.CreateUserRequest
-	
-	fmt.Println("input", input)
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+    var input dtos.CreateUserRequest
+    
+    if err := c.ShouldBindJSON(&input); err != nil {
+        r.BadRequestError(c, err.Error())
+        return
+    }
 
-	// Call service to create a new user
-	user, err := h.service.CreateUser(c,input)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    user, err := h.service.CreateUser(c, input)
+    if err != nil {
+        r.InternalServerError(c, err)
+        return
+    }
 
-	// Return created user as a DTO
-	c.JSON(http.StatusCreated, mappers.ToUserDTO(user))
+    r.SendSuccessResponse(c, "User created successfully", mappers.ToUserDTO(user))
 }
-
 // GetUserByID handles retrieving a user by ID.
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
