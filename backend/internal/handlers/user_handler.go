@@ -9,7 +9,7 @@ import (
 	"backend/internal/mappers"
 	"backend/internal/services"
 	"github.com/gin-gonic/gin"
-	er "backend/internal/resources"
+	. "backend/internal/resources/response"
 	. "backend/internal/resources/constants"
 )
 
@@ -37,81 +37,76 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
     var input dtos.CreateUserRequest
     
     if err := c.ShouldBindJSON(&input); err != nil {
-        er.BadRequestError(c, err.Error())
+        BadRequestError(c, err.Error())
         return
     }
 
     user, err := h.service.CreateUser(c, input)
     if err != nil {
-        er.InternalServerError(c, err)
+        InternalServerError(c, err)
         return
     }
 
-    er.SendSuccessResponse(c, "User created successfully", mappers.ToUserDTO(user))
+    SendSuccessResponse(c, USER_CREATED, mappers.ToUserDTO(user))
 }
 // GetUserByID handles retrieving a user by ID.
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		er.BadRequestError(c, "User not found")
+		BadRequestError(c, INVALID_USER_INPUT)
 		return
 	}
 
 	// Fetch user from service
 	user, err := h.service.GetUserByID(c, int32(id))
 	if err != nil {
-		er.SendErrorResponse(c, 400, USER_NOT_FOUND, "")
+		SendErrorResponse(c, STATUS_BAD_REQUEST, USER_NOT_FOUND, err.Error())
 		return
 	}
 
 	// Return the user as a DTO
-	c.JSON(http.StatusOK, mappers.ToUserDTO(user))
+  SendSuccessResponse(c, SUCCESS, mappers.ToUserDTO(user))
 }
 
 // UpdateUser handles updating a user by ID.
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		SendErrorResponse(c, STATUS_BAD_REQUEST, USER_NOT_FOUND, err.Error())
 		return
 	}
 
 	var input dtos.UpdateUserRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		SendErrorResponse(c, STATUS_BAD_REQUEST, "", err.Error())
 		return
 	}
 
 	// Call service to update the user
 	user, err := h.service.UpdateUser(c, int32(id), input.FirstName, "", input.LastName, input.Email, input.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		SendErrorResponse(c, STATUS_BAD_REQUEST, INVALID_USER_INPUT, err.Error())
 		return
 	}
-
-	// Return updated user as a DTO
-	c.JSON(http.StatusOK, mappers.ToUserDTO(user))
+  SendSuccessResponse(c, USER_CREATED, mappers.ToUserDTO(user))
 }
 
 // DeleteUser handles deleting a user by ID.
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-
-		er.SendErrorResponse(c, 400, "User not found", "")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		SendErrorResponse(c, STATUS_BAD_REQUEST, USER_NOT_FOUND, err.Error())
 		return
 	}
 
 	// Call service to delete the user
 	err = h.service.DeleteUser(c, int32(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		SendErrorResponse(c, STATUS_BAD_REQUEST, USER_NOT_FOUND, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+  SendSuccessResponse(c, USER_DELETED_SUCCESSFULLY, nil)
 }
 
 // GetUsers handles retrieving all users.
@@ -124,5 +119,5 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	}
 
 	// Return the list of users as DTOs
-	c.JSON(http.StatusOK, mappers.ToUserDTOs(users))
+  SendSuccessResponse(c, SUCCESS, mappers.ToUserDTOs(users))
 }

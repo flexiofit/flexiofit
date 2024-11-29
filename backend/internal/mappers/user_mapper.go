@@ -14,6 +14,7 @@ func ToUserDTO(user *models.User) dtos.UserDTO {
 		FirstName: user.FirstName,
 		UserType:  user.UserType.String(),
 		LastName:  user.LastName,
+		Mobile:    user.Mobile,
 		Email:     user.Email,
 	}
 }

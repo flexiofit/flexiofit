@@ -1,5 +1,5 @@
 // internal/resources/response.go
-package resources
+package response
 
 import (
 	"net/http"
