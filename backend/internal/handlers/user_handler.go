@@ -9,8 +9,8 @@ import (
 	"backend/internal/mappers"
 	"backend/internal/services"
 	"github.com/gin-gonic/gin"
-	r "backend/internal/resources"
-	// . "backend/internal/resources/errors"
+	er "backend/internal/resources"
+	. "backend/internal/resources/constants"
 )
 
 type UserHandler struct {
@@ -33,55 +33,34 @@ func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	}
 }
 
-// CreateUser handles the creation of a user.
-// func (h *UserHandler) CreateUser(c *gin.Context) {
-// 	fmt.Println("12 12 12")
-// 	var input dtos.CreateUserRequest
-//
-// 	fmt.Println("input", input)
-// 	if err := c.ShouldBindJSON(&input); err != nil {
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 		return
-// 	}
-//
-// 	// Call service to create a new user
-// 	user, err := h.service.CreateUser(c,input)
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 		return
-// 	}
-//
-// 	// Return created user as a DTO
-// 	c.JSON(http.StatusCreated, mappers.ToUserDTO(user))
-// }
 func (h *UserHandler) CreateUser(c *gin.Context) {
     var input dtos.CreateUserRequest
     
     if err := c.ShouldBindJSON(&input); err != nil {
-        r.BadRequestError(c, err.Error())
+        er.BadRequestError(c, err.Error())
         return
     }
 
     user, err := h.service.CreateUser(c, input)
     if err != nil {
-        r.InternalServerError(c, err)
+        er.InternalServerError(c, err)
         return
     }
 
-    r.SendSuccessResponse(c, "User created successfully", mappers.ToUserDTO(user))
+    er.SendSuccessResponse(c, "User created successfully", mappers.ToUserDTO(user))
 }
 // GetUserByID handles retrieving a user by ID.
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		r.BadRequestError(c, "User not found")
+		er.BadRequestError(c, "User not found")
 		return
 	}
 
 	// Fetch user from service
 	user, err := h.service.GetUserByID(c, int32(id))
 	if err != nil {
-		r.SendErrorResponse(c, 400, "User not found")
+		er.SendErrorResponse(c, 400, USER_NOT_FOUND, "")
 		return
 	}
 
@@ -93,6 +72,7 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
+
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 		return
 	}
@@ -118,6 +98,8 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 func (h *UserHandler) DeleteUser(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
+
+		er.SendErrorResponse(c, 400, "User not found", "")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 		return
 	}

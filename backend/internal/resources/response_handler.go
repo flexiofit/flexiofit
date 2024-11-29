@@ -11,7 +11,7 @@ type Response struct {
 	Status  int         `json:"status"`
 	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
+	Error   interface{}      `json:"error,omitempty"`
 }
 
 // SendSuccessResponse sends a success response with optional data
@@ -24,11 +24,14 @@ func SendSuccessResponse(c *gin.Context, message string, data interface{}) {
 }
 
 // SendErrorResponse sends a custom error response
-func SendErrorResponse(c *gin.Context, statusCode int, message string) {
+func SendErrorResponse(c *gin.Context, statusCode int, message string, error interface{}) {
+	if error == nil {
+		error = nil
+	}
 	c.JSON(statusCode, Response{
 		Status:  statusCode,
 		Message: message,
-		Error:   message,
+		Error:   error,
 	})
 }
 

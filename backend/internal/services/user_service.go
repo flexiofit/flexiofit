@@ -5,7 +5,7 @@ import (
 	"backend/internal/models"
 	"backend/internal/dtos"
 	"backend/internal/repository"
-	"backend/internal/resources"
+	. "backend/internal/resources/constants"
 	"context"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
@@ -30,8 +30,8 @@ func (s *UserService) CreateUser(ctx context.Context, input dtos.CreateUserReque
 		return nil, fmt.Errorf("failed to hash password: %v", err)
 	}
 
-userType := resources.GetUserType(input.UserType)
-if userType == resources.INVALID {
+userType := GetUserType(input.UserType)
+if userType == INVALID {
     return nil, fmt.Errorf("invalid user type: %s", input.UserType)
 }
 

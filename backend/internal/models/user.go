@@ -1,7 +1,7 @@
 package models
 
 import (
-	. "backend/internal/resources"
+	. "backend/internal/resources/constants"
 )
 
 type User struct {
