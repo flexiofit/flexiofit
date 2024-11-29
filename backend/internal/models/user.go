@@ -14,4 +14,7 @@ type User struct {
 	PasswordHash string `gorm:"not null"`                 // Hashed password, mandatory
 	CreatedBy    int `gorm:"size:50"`                  // Who created the record
 	UpdatedBy    int `gorm:"size:50"`                  // Who last updated the record
+
+	// GymPartner   GymPartner `gorm:"foreignkey:GymPartnerID"` // This refers to the GymPartner model, and GORM will use the field name `GymPartnerID` in the User table
+
 }

@@ -117,3 +117,18 @@ func validateUser(user *models.User) error {
 	}
 	return nil
 }
+
+// ListUsersWithFilters demonstrates using the enhanced repository features
+func (s *UserService) ListUsersWithFilters(ctx context.Context, page, limit int, filters map[string]interface{}) ([]models.User, error) {
+	// Add pagination to filters
+	filters["offset"] = page
+	filters["limit"] = limit
+
+	// Using the repository's new method
+	if repo, ok := s.userRepository.(*repository.UserRepository); ok {
+		return repo.ListUsersWithFilters(filters)
+	}
+	
+	// Fallback to regular list if repository doesn't support filters
+	return s.userRepository.ListUsers()
+}
