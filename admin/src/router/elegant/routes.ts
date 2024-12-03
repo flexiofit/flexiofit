@@ -36,7 +36,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: '500',
       i18nKey: 'route.500',
       constant: true,
-      hideInMenu: false
+      hideInMenu: true
     }
   },
   {
@@ -47,7 +47,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       title: 'home',
       i18nKey: 'route.home',
       icon: 'mdi:monitor-dashboard',
-      order: 1
+      hideInMenu: false
     }
   },
   {
@@ -73,6 +73,27 @@ export const generatedRoutes: GeneratedRoute[] = [
       i18nKey: 'route.login',
       constant: true,
       hideInMenu: true
+    }
+  },
+  {
+    name: 'partner',
+    path: '/partner',
+    component: 'layout.base$view.partner',
+    meta: {
+      title: 'partner',
+      icon: 'mdi:weight-lifter',
+      i18nKey: 'route.partner'
+    }
+  },
+  {
+    name: 'user',
+    path: '/user',
+    component: 'layout.base$view.user',
+    meta: {
+      title: 'user',
+      i18nKey: 'route.user',
+      icon: 'mdi:account-group',
+      hideInMenu: false
     }
   }
 ];
