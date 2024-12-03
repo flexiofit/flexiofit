@@ -17,5 +17,6 @@ type User struct {
 	UpdatedBy    int `gorm:"size:50"`
 
 	// GymPartner   GymPartner `gorm:"foreignkey:GymPartnerID"` // This refers to the GymPartner model, and GORM will use the field name `GymPartnerID` in the User table
+	GymPartner []GymPartner `gorm:"foreignKey:UserID"`
 
 }
