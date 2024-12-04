@@ -40,6 +40,8 @@ if userType == INVALID {
 		MiddleName:   input.MiddleName,
 		LastName:     input.LastName,
 		Email:        input.Email,
+		Mobile:       input.Mobile,
+		Username:     input.Username,
 		PasswordHash: string(passwordHash),
 		UserType:     userType,
 	}

@@ -10,6 +10,7 @@ type User struct {
 	MiddleName   string `gorm:"size:100"`                 
 	LastName     string `gorm:"size:100;not null"`        
 	Email        string `gorm:"size:100;unique;not null"` 
+	Username     string `gorm:"size:100;unique"` 
 	Mobile       string `gorm:"size:20; unique; not null"`
 	UserType     USERROLE `gorm:"not null;default:-1"`
 	PasswordHash string `gorm:"not null"`
