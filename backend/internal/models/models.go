@@ -11,6 +11,8 @@ import (
 var RegisterModels = []interface{}{
 	&User{},
 	&GymPartner{},
+	&User{},
+	&Customer{},
 	// Add new models here
 	// &Role{},
 	// &Permission{},

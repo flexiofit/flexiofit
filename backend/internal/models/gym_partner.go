@@ -15,15 +15,13 @@ type GymPartner struct {
     AlternateMobile    string `gorm:"column:alternate_mobile;size:20"`
     CommissionRate     int    `gorm:"column:commission_rate"`
     IsActive           bool   `gorm:"column:is_active"`
-    GymName            string `gorm:"column:gym_name;size:255"`
+    GymName            string `gorm:"column:gym_name;size:50"`
     Address            string `gorm:"column:address;size:255"`
     City               string `gorm:"column:city;size:100"`
     State              string `gorm:"column:state;size:100"`
     PinCode            string `gorm:"column:pin_code;size:20"`
-		CreatedBy          int    `gorm:"column:created_by"`
-		UpdatedBy          int    `gorm:"column:updated_by"`
+    CreatedBy          int    `gorm:"column:created_by"`
+    UpdatedBy          int    `gorm:"column:updated_by"`
 
-		User      User      `gorm:"foreignKey:UserID"`
-		// One-to-many relationship with User
-		// Users []User `gorm:"foreignkey:GymPartnerID"` // Let GORM handle the foreign key, it assumes "GymPartnerID" as the field in the User model
+    GymBranches []GymBranch `gorm:"foreignKey:PartnerID"`   // One GymPartner has many GymBranches
 }
