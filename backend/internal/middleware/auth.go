@@ -75,9 +75,9 @@ func GenerateTokens(username string) (string, string, error) {
 		Data: []map[string]string{{"userName": username}},
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour * 24 * 365)),
-			Issuer:    "Soybean",
+			Issuer:    "Pranshu",
 			Subject:   username,
-			Audience:  jwt.ClaimStrings{"soybean-admin"},
+			Audience:  jwt.ClaimStrings{"flexio-admin"},
 			IssuedAt:  jwt.NewNumericDate(now),
 		},
 	}
@@ -92,9 +92,9 @@ func GenerateTokens(username string) (string, string, error) {
 		Data: []map[string]string{{"userName": username}},
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour * 24 * 365 * 2)),
-			Issuer:    "Soybean",
+			Issuer:    "Pranshu",
 			Subject:   username,
-			Audience:  jwt.ClaimStrings{"soybean-admin"},
+			Audience:  jwt.ClaimStrings{"flexio-admin"},
 			IssuedAt:  jwt.NewNumericDate(now),
 		},
 	}

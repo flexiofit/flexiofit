@@ -1,6 +1,6 @@
 import { request } from '../request';
 
-const USER_BASE = '/user';
+const USER_BASE = 'api/v1/users';
 
 /**
  * Fetch all users

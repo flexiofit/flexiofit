@@ -50,7 +50,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// Replace with actual authentication logic
-	if req.Username != "Soybean" || req.Password != "123456" {
+	if req.Username != "Pranshu" || req.Password != "123456" {
 		response.BadRequestError(c, "invalid credentials")
 		return
 	}
