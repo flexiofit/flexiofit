@@ -1,6 +1,6 @@
 import { request } from '../request';
 
-const USER_BASE = 'api/v1/users';
+const PATH = 'api/v1/users';
 
 /**
  * Fetch all users
@@ -8,8 +8,8 @@ const USER_BASE = 'api/v1/users';
  * @returns Promise resolving to the list of users
  */
 export function fetchAllUsers() {
-  return request<Api.User.UserList[]>({
-    url: USER_BASE,
+  return request<Api.User.ApiResponse>({
+    url: PATH,
     method: 'get',
   });
 }
@@ -22,7 +22,7 @@ export function fetchAllUsers() {
  */
 export function fetchUserById(id: string) {
   return request<Api.User.User>({
-    url: `${USER_BASE}/${id}`,
+    url: `${PATH}/${id}`,
     method: 'get',
   });
 }
@@ -35,7 +35,7 @@ export function fetchUserById(id: string) {
  */
 export function createUser(user: Api.User.CreateUserPayload) {
   return request<Api.User.User>({
-    url: USER_BASE,
+    url: PATH,
     method: 'post',
     data: user,
   });
@@ -50,7 +50,7 @@ export function createUser(user: Api.User.CreateUserPayload) {
  */
 export function updateUser(id: string, user: Api.User.UpdateUserPayload) {
   return request<Api.User.User>({
-    url: `${USER_BASE}/${id}`,
+    url: `${PATH}/${id}`,
     method: 'put',
     data: user,
   });
@@ -64,7 +64,7 @@ export function updateUser(id: string, user: Api.User.UpdateUserPayload) {
  */
 export function deleteUser(id: string) {
   return request<void>({
-    url: `${USER_BASE}/${id}`,
+    url: `${PATH}/${id}`,
     method: 'delete',
   });
 }

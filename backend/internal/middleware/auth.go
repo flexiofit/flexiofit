@@ -70,11 +70,11 @@ func validateToken(tokenString string) (*jwt.Token, error) {
 func GenerateTokens(username string) (string, string, error) {
 	now := time.Now()
 
-	// Access Token (1 year expiration)
+	// Access Token (1 hour expiration)
 	accessTokenClaims := JWTClaims{
 		Data: []map[string]string{{"userName": username}},
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour * 24 * 365)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour)), // 1 hour expiration
 			Issuer:    "Pranshu",
 			Subject:   username,
 			Audience:  jwt.ClaimStrings{"flexio-admin"},
@@ -87,11 +87,11 @@ func GenerateTokens(username string) (string, string, error) {
 		return "", "", err
 	}
 
-	// Refresh Token (2 years expiration)
+	// Refresh Token (1 day expiration)
 	refreshTokenClaims := JWTClaims{
 		Data: []map[string]string{{"userName": username}},
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(time.Hour * 24 * 365 * 2)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)), // 1 day expiration
 			Issuer:    "Pranshu",
 			Subject:   username,
 			Audience:  jwt.ClaimStrings{"flexio-admin"},

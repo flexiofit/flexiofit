@@ -28,9 +28,11 @@ func NewAuthHandler(userService services.UserService) Handler {
 
 func (h *AuthHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	// Public routes
-	rg.Group("/auth")
-	rg.POST("/login", h.Login)
-	rg.POST("/refresh-token", h.RefreshToken)
+	authGroup := rg.Group("/auth") // Assign the group to a variable
+	{
+		authGroup.POST("/login", h.Login)
+		authGroup.POST("/refreshToken", h.RefreshToken)
+	}
 
 	// Protected routes (after login)
 	authenticated := rg.Group("/")

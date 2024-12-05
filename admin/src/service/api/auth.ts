@@ -1,5 +1,7 @@
 import { request } from '../request';
 
+const PATH = '/api/v1/auth';
+
 /**
  * Login
  *
@@ -8,7 +10,7 @@ import { request } from '../request';
  */
 export function fetchLogin(userName: string, password: string) {
   return request<Api.Auth.LoginToken>({
-    url: '/api/v1/login',
+    url: `${PATH}/login`,
     method: 'post',
     data: {
       userName,
@@ -29,7 +31,7 @@ export function fetchGetUserInfo() {
  */
 export function fetchRefreshToken(refreshToken: string) {
   return request<Api.Auth.LoginToken>({
-    url: '/api/v1/refreshToken',
+    url: `${PATH}/refreshToken`,
     method: 'post',
     data: {
       refreshToken
