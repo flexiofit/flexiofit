@@ -18,6 +18,10 @@ type Handler interface {
 // SetupRouter sets up the router and registers all handlers
 func SetupRouter(services *services.Services) *gin.Engine {
 	router := gin.Default()
+
+	 // Apply the CORS middleware
+	 router.Use(middleware.CORSMiddleware())
+
 	api := router.Group("/api/v1")
 
 	// Swagger route

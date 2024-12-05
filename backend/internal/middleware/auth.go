@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+	 "net/http"
+	 "fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -125,23 +127,19 @@ func ValidateRefreshToken(tokenString string) (*JWTClaims, error) {
 	return nil, errors.New("invalid refresh token")
 }
 
+func CORSMiddleware() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:1234") // Set to the frontend's origin
+        c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+        c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, x-request-id")
+        c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 
-// func (m *AuthMiddleware) ValidateRefreshToken(tokenString string) (*JWTClaims, error) {
-// 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-// 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-// 			return nil, errors.New("invalid token signing method")
-// 		}
-// 		return jwtSecret, nil
-// 	})
-//
-// 	if err != nil {
-// 		return nil, err
-// 	}
-//
-// 	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
-// 		return claims, nil
-// 	}
-//
-// 	return nil, errors.New("invalid refresh token")
-// }
-// k
+        if c.Request.Method == http.MethodOptions {
+					fmt.Println("Preflight request received")
+            c.AbortWithStatus(http.StatusNoContent)
+            return
+        }
+
+        c.Next()
+    }
+}
