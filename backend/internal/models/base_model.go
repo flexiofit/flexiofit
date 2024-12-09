@@ -10,4 +10,5 @@ type BaseModel struct {
 	CreatedAt time.Time      `json:"column:created_at"`
 	UpdatedAt time.Time      `json:"column:updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	IsDeleted bool           `gorm:"column:is_deleted;default:false" json:"is_deleted"`
 }

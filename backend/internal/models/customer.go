@@ -7,7 +7,7 @@ import (
 type Customer struct {
     BaseModel
     UserID           uint      `gorm:"column:user_id"`              // Foreign key to User
-    BranchID         int       `gorm:"column:branch_id"`            // Foreign key to GymBranch
+    CrewID         int       `gorm:"column:crew_id"`            // Foreign key to GymBranch
     FirstName        string    `gorm:"column:first_name;size:100"`
     MiddleName       string    `gorm:"column:middle_name;size:100"`
     LastName         string    `gorm:"column:last_name;size:100"`
@@ -19,6 +19,6 @@ type Customer struct {
     MembershipEnd    time.Time `gorm:"column:membership_end"`       // Membership end date
     IsActive         bool      `gorm:"column:is_active"`            // Whether the membership is active
 
-    GymBranch GymBranch `gorm:"foreignKey:BranchID"` // Each Customer belongs to one GymBranch
+    FitCrew FitCrew `gorm:"foreignKey:CrewID"` // Each Customer belongs to one GymBranch
     User      User      `gorm:"foreignKey:UserID"`   // Relationship to User
 }

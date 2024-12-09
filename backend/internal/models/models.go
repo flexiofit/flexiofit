@@ -10,12 +10,12 @@ import (
 // RegisterModels contains all models that need GORM auto-migration
 var RegisterModels = []interface{}{
 	&User{},
-	&GymPartner{},
-	&User{},
 	&Customer{},
-	// Add new models here
-	// &Role{},
-	// &Permission{},
+	&FitCrew{},
+	&FitService{},
+	&FitAllie{},
+	&FitAllieService{},
+	&TrainerProfile{},
 }
 
 // AutoMigrateDB handles the auto-migration of all registered models

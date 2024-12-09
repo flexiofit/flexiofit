@@ -10,6 +10,7 @@ type User struct {
     MiddleName   string       `gorm:"column:middle_name;size:25"`                 
     LastName     string       `gorm:"column:last_name;size:25;not null"`        
     Email        string       `gorm:"column:email;size:100;unique;not null"` 
+    IsActive          bool    `gorm:"column:is_active;default:true"`
     Username     string       `gorm:"column:username;size:100;unique"` 
     Mobile       string       `gorm:"column:mobile;size:20;unique;not null"`
     UserType     USERROLE `gorm:"column:user_type;not null;default:-1"`
